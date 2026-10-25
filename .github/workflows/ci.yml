@@ -1,0 +1,33 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: clippy, rustfmt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Rust
+        working-directory: core
+        run: |
+          cargo fmt --check
+          cargo clippy --all-targets -- -D warnings
+          cargo test --release
+      - name: Web
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+      - name: Headless closed-loop experiment
+        working-directory: web
+        run: npm run experiment -- 1 > experiment.csv && wc -l experiment.csv
